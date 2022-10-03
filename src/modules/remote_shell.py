@@ -1,19 +1,11 @@
 import logging
 from paramiko import SSHClient, WarningPolicy
-from modules.utils import clean_output, print_arr
+from paramiko.util import log_to_file
+from modules.utils import clean_output, print_arr, has_auth
 
 LG = logging.getLogger(__name__)
 
 HEADER = "{}@{} $"
-
-def has_auth(config:dict):
-    print(config)
-    user = config.get("user", None)
-    passwd = config.get("password", None)
-    print("AUTH user", user)
-    print("AUTH user", passwd)
-    if user and passwd: return True
-    else: return False
 
 def create_client()->SSHClient:
     target = SSHClient()
@@ -23,12 +15,11 @@ def create_client()->SSHClient:
 
 def establish_session(config: dict):
     if has_auth(config):
+        log_to_file(f"{config['target']}:{config['user']}.log")
         print(f"Extension -> {__name__}:{establish_session.__name__}")
         LG.info(f"Extension -> {__name__}:{establish_session.__name__}")
         LG.info(f"Connecting to -> {config['target']}")
         print(f"Connecting to -> {config['target']}")
-        #os.system(f"ssh -P {passwd} {user}@{config['target']}")
-        #os.system(passwd)
         tgt = config["target"]
         user = config["user"]
         pwd = config["password"]
@@ -60,6 +51,7 @@ def run_command(rcmd:str,config:dict)->dict:
         tgt = config["target"]
         user = config["user"]
         pwd = config["password"]
+        log_to_file(f"{tgt}:{user}.log")
         target=create_client()
         try:
             target.connect(tgt, username=user, password=pwd, look_for_keys=False)

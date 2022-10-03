@@ -46,6 +46,8 @@ if __name__ == "__main__":
     args = get_args()
     log_level = getattr(args, "log_level")
     set_logging(log_level)
+    if not os.path.isdir("output"):
+        os.mkdir("output")
     if getattr(args, "version"):
         print(VERSION)
         sys.exit(0)
@@ -53,6 +55,7 @@ if __name__ == "__main__":
         "target": getattr(args, "target", None),
         "user": getattr(args, "user", None),
         "password": getattr(args, "password", None),
+        "sftp_port": getattr(args, "sftp_port", None),
         "extensions": [loader.detect_extensions()]
     }
     if getattr(args, "config_file") and os.path.isfile(args.config_file):

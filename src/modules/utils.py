@@ -31,7 +31,17 @@ def get_args()->MethodType:
     parser.add_argument("-cf", "--config-file", help="Config file")
     parser.add_argument("-v", "--version", action="store_true", help="version")
     parser.add_argument("-l", "--log-level", default="INFO", help="log level")
+    parser.add_argument("-sp", "--sftp-port", default=22, help="Port for SFTP connections")
     return parser.parse_args()
+
+def has_auth(config:dict):
+    print(config)
+    user = config.get("user", None)
+    passwd = config.get("password", None)
+    print("AUTH user", user)
+    print("AUTH user", passwd)
+    if user and passwd: return True
+    else: return False
 
 def get_os()->str:
     name = "windows" if os.name == "nt" else "other"
