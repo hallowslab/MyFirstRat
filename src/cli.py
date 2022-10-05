@@ -15,6 +15,7 @@ INTIAL_MENU = """
     [1]: Run remote command
     [2]: SFTP Menu
     [9]: Run extension
+
     [e]: Show loaded extensions
     [c]: Change config
     [h]: Show this menu

